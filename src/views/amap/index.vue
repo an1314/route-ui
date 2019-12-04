@@ -5,7 +5,7 @@
         vid="amapDemo"
         ref="amap"
         :center="map.center"
-        :map-manager="amapManager"
+        :map-manager="map.amapManager"
         :zoom="map.zoom"
         :events="map.events"
         class="amap-demo"
@@ -23,19 +23,34 @@
 </template>
 
 <script>
+import Vue from 'vue'
+import VueAMap from 'vue-amap';
+
+// 引入高德地图
+Vue.use(VueAMap);
+VueAMap.initAMapApiLoader({
+  key: 'YOUR_KEY',
+  plugin: ['AMap.Scale', 'AMap.OverView', 'AMap.ToolBar', 'AMap.MapType'],
+  v: '1.4.4',
+  uiVersion: '1.0.11'
+});
+
+
+
 export default {
   data() {
     return {
-      amapManager: this.amapManager(),
+      amap: {},
       // 地图相关信息
       map: {
         zoom: 12,
+        amapManager:  new VueAMap.AMapManager(),
         center: [121.59996, 31.197646],
         mapStyle: 'light',
         events: {
           init: (map)=> {
-            var amap = this.$refs.amap.$$getInstance(); 
-            amap.setMapStyle("amap://styles/grey")
+            this.amap = this.$refs.amap.$$getInstance(); 
+            this.amap.setMapStyle("amap://styles/grey")
             AMapUI.loadUI(["overlay/SimpleMarker"], function(SimpleMarker) {
               const marker = new SimpleMarker({
                 iconLabel: "A",

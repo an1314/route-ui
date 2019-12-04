@@ -20,21 +20,6 @@ import { getDicts } from "@/api/system/dict/data";
 import { getConfigKey } from "@/api/system/config";
 import { parseTime, resetForm, addDateRange, selectDictLabel, download } from "@/utils/ruoyi";
 import Pagination from "@/components/Pagination";
-import VueAMap from 'vue-amap';
-
-
-// 引入高德地图
-Vue.use(VueAMap);
-VueAMap.initAMapApiLoader({
-  key: 'YOUR_KEY',
-  plugin: ['AMap.Scale', 'AMap.OverView', 'AMap.ToolBar', 'AMap.MapType'],
-  v: '1.4.4',
-  uiVersion: '1.0.11'
-});
-
-Vue.prototype.amapManager = function(){
-  return new VueAMap.AMapManager(); 
-}
 
 // 全局方法挂载
 Vue.prototype.getDicts = getDicts
