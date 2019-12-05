@@ -1,25 +1,23 @@
 <template>
-  <div id="app">
-    <div class="amap-wrapper">
-      <el-amap
-        vid="amapDemo"
-        ref="amap"
-        :center="map.center"
-        :map-manager="map.amapManager"
-        :zoom="map.zoom"
-        :mapStyle="map.mapStyle"
-        :events="map.events"
-        class="amap-demo"
-      >
-        <!-- 信息窗体 -->
-        <el-amap-info-window
-          :position="infowindow.position"
-          :contentRender="infoWindowRender"
-          :visible="infowindow.visible"
-          :events="infowindow.events"
-        ></el-amap-info-window>
-      </el-amap>
-    </div>
+  <div class="amap-wrapper">
+    <el-amap
+      :vid="'amapDemo' + (Math.floor(Math.random()* 10000) +1).toString().padStart(5, '0')"
+      ref="amap"
+      :center="map.center"
+      :map-manager="map.amapManager"
+      :zoom="map.zoom"
+      
+      :events="map.events"
+      class="amap-demo"
+    >
+      <!-- 信息窗体 -->
+      <el-amap-info-window
+        :position="infowindow.position"
+        :contentRender="infoWindowRender"
+        :visible="infowindow.visible"
+        :events="infowindow.events"
+      ></el-amap-info-window>
+    </el-amap>
   </div>
 </template>
 
@@ -59,7 +57,7 @@ export default {
         zoom: 12,
         amapManager: new VueAMap.AMapManager(),
         center: [121.59996, 31.197646],
-        mapStyle: "light",
+        //mapStyle: "light",
         events: {
           init: map => {
             this.amap = this.$refs.amap.$$getInstance();
@@ -245,9 +243,7 @@ export default {
         visible: false,
         events: {
           open: () => {
-            setTimeout(() => {
-              //this.$set(this.infowindow, 'visible', false)
-            }, 1000);
+            
           },
           close: () => {
             this.$set(this.infowindow, "visible", false);
@@ -396,9 +392,9 @@ export default {
 
 <style>
 .amap-wrapper {
-  width: 500px;
-  min-width: 500px;
+  width: 100%;
   height: 500px;
+  min-width: 500px;
   min-height: 500px;
 }
 </style>

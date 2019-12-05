@@ -28,14 +28,26 @@
       <el-col :span="16" :xs="20" style="min-height: 500px">
         <el-col :span="24">
           <el-form :model="queryParams" ref="queryForm" :inline="true" label-width="68px">
-            <el-form-item label="日期" prop="date">
-              <el-date-picker
-                v-model="queryParams.date"
-                size="small"
-                style="width: 240px"
-                value-format="yyyy-MM-dd"
-                type="date"
-              ></el-date-picker>
+            <el-form-item label="人员" prop="persons">
+              <el-select
+                v-model="queryParams.persons"
+                value-key="value"
+                multiple
+                filterable
+                collapse-tags
+                remote
+                reserve-keyword
+                placeholder="请输入人员姓名"
+                :remote-method="remoteMethod"
+                :loading="personSelectloading"
+              >
+                <el-option
+                  v-for="item in personData"
+                  :key="item.value"
+                  :label="item.label"
+                  :value="item"
+                ></el-option>
+              </el-select>
             </el-form-item>
             <el-form-item>
               <el-button type="primary" icon="el-icon-search" size="mini" @click="handleQuery">搜索</el-button>
@@ -48,35 +60,11 @@
         </el-col>
       </el-col>
       <el-col :span="4" :xs="4" style="min-height: 500px; line-height: 40px">
-        <el-row>
-          <el-col :span="10">SFA总人数：</el-col>
-          <el-col :span="14">
-            <el-input v-model="userInfo.sfaUserNum" type="number"></el-input>
-          </el-col>
-        </el-row>
-        <el-row>
-          <el-col :span="10">今日登录人数：</el-col>
-          <el-col :span="14">{{ userInfo.loginUserNum }}</el-col>
-        </el-row>
-        <el-row>
-          <el-col :span="10">登录占比：</el-col>
-          <el-col :span="14">{{ userInfo.loginUserNum , userInfo.sfaUserNum | percentage }}</el-col>
-        </el-row>
-        <el-row>
-          <el-col :span="10">今日拜访人数：</el-col>
-          <el-col :span="14">{{ userInfo.visitUserNum }}</el-col>
-        </el-row>
-        <el-row>
-          <el-col :span="10">拜访占比：</el-col>
-          <el-col :span="14">{{ userInfo.visitUserNum , userInfo.sfaUserNum | percentage }}</el-col>
-        </el-row>
-        <el-col :span="10" :offset="2" v-for="person in personList" >
+        <el-col :span="10" :offset="2" v-for="person in personList">
           <el-col :span="3">
-            <i class="el-icon-user-solid place" ></i>
+            <i class="el-icon-user-solid place"></i>
           </el-col>
-          <el-col :offset="1" :span="18">
-            {{ person.name }}
-          </el-col>
+          <el-col :offset="1" :span="18">{{ person.name }}</el-col>
         </el-col>
       </el-col>
     </el-row>
@@ -107,7 +95,7 @@ export default {
       // 查询参数
       queryParams: {
         // 日期
-        date: new Date()
+        persons: [],
       },
 
       // 侧边栏人员数据
@@ -123,19 +111,57 @@ export default {
       },
 
       // 侧边栏人员数据
-      personList: [{
-        color: 'red',
-        name: '张三'
-      },{
-        color: 'red',
-        name: '张三'
-      }],
+      personList: [
+        {
+          color: "red",
+          name: "张三"
+        },
+        {
+          color: "red",
+          name: "张三"
+        }
+      ],
+
+      // 人员下拉框源数据
+      personSource: [
+        {
+            code: '1',
+            name: 'a'
+        },
+        {
+            code: '2',
+            name: 'b'
+        },
+        {
+            code: '3',
+            name: 'd'
+        },
+        {
+            code: '4',
+            name: 'e'
+        }
+      ],
 
       // 地图加载控制
-      mapLoading: undefined
+      mapLoading: undefined,
+
+      // 人员下拉框加载控制
+      personSelectloading: false
     };
   },
-
+  computed: {
+      // 转换人员数据源为下拉框可用格式 index 0 为下拉框键值， index 1 为对象键值 
+      personData(){
+        let mapping = [
+            ['value', 'code'],
+            ['label', 'name']
+        ]
+        return this.personSource.map(item => Object.assign(item, mapping.reduce((obj, child)=> {
+            obj[child[0]] = item[child[1]]
+            return obj
+        }, {})))
+      }
+  },
   methods: {
     // 高德地图初始化完成触发
     initAMap(map, AMap, AMapUI) {},
@@ -156,16 +182,32 @@ export default {
       this.queryParams.orgId = data.id;
       //this.getList();
     },
+    // 搜索点击事件
     handleQuery() {
       this.mapLoading = this.$loading({
         target: this.$refs.amap.$el,
         lock: true
-      })
-
+      });
+      console.log(this.queryParams.persons);
     },
+    // 重置点击事件
     resetQuery() {
       this.resetForm("queryForm")
       this.handleQuery();
+    },
+    remoteMethod(query) {
+        if (query !== '') {
+            this.loading = true;
+            setTimeout(() => {
+            this.loading = false;
+            this.options = this.list.filter(item => {
+                return item.label.toLowerCase()
+                .indexOf(query.toLowerCase()) > -1;
+            });
+            }, 200);
+        } else {
+            this.options = [];
+        }
     }
   },
   created() {
@@ -190,7 +232,7 @@ export default {
 </script>
 
 <style>
-.place{
-  color: rgb(38, 67, 197)
+.place {
+  color: rgb(38, 67, 197);
 }
 </style>
