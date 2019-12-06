@@ -18,11 +18,16 @@
             :data="organizationOptions"
             :props="defaultProps"
             :expand-on-click-node="false"
+            check-on-click-node
+            highlight-current
             :filter-node-method="filterNode"
             ref="tree"
-            default-expand-all
             @node-click="handleNodeClick"
-          />
+          >
+            <span slot-scope="{ node, data }">
+              <span class="el-tree-node__label" :title="node.label">{{ node.label }}</span>
+            </span>
+          </el-tree>
         </div>
       </el-col>
       <el-col :span="20" :xs="24" style="min-height: 500px">
@@ -47,8 +52,8 @@
         </el-col>
         <el-col :span="24" style="margin-bottom: 10px">
           <el-row type="flex" justify="end">
-            <el-col :span="2">{{ '总部' }} - {{ queryParams.noLoginDay.label }} </el-col>
-            <el-col :span="4" :offset="1"> 未登录系统总人数 {{ total }}</el-col>
+            <el-col :span="2">{{ '总部' }} - {{ queryParams.noLoginDay.label }}</el-col>
+            <el-col :span="4" :offset="1">未登录系统总人数 {{ total }}</el-col>
           </el-row>
         </el-col>
         <el-table v-loading="loading" :data="userList">
@@ -81,7 +86,7 @@
 import { treeselect } from "@/api/route/organization";
 import AMapTemp from "@/views/route/amap/index";
 export default {
-  name: "organization",
+  name: "nologinpersons",
   components: {
     AMapTemp
   },
@@ -95,7 +100,7 @@ export default {
 
       defaultProps: {
         children: "children",
-        label: "label"
+        label: "orgNameCn"
       },
 
       // 查询参数
@@ -105,6 +110,9 @@ export default {
           value: "2",
           label: "7天"
         },
+
+        // 组织架构
+        orgCodes: [],
 
         // 分页参数
         pageNum: 1,
@@ -145,19 +153,21 @@ export default {
   methods: {
     // 获取组织架构树
     getTreeselect() {
-      // treeselect().then(response => {
-      //   this.organizationOptions = response.data;
-      // });
+      treeselect().then(response => {
+        this.organizationOptions = response.data;
+      });
     },
     // 筛选节点
     filterNode(value, data) {
       if (!value) return true;
-      return data.label.indexOf(value) !== -1;
+      return data[this.defaultProps.label].indexOf(value) !== -1;
     },
     // 节点单击事件
     handleNodeClick(data) {
-      this.queryParams.orgId = data.id;
-      this.getList();
+      // 获取节点下级
+      let orgCodes = this.findChildrenParams(data, false, 'orgCode')
+      this.queryParams.orgCodes = orgCodes;
+      //this.getList();
     },
     getList() {},
     // 搜索点击事件

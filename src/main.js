@@ -4,7 +4,7 @@ import Cookies from 'js-cookie'
 
 import 'normalize.css/normalize.css' // a modern alternative to CSS resets
 
-import Element from 'element-ui'
+import Element, { Form } from 'element-ui'
 import './assets/styles/element-variables.scss'
 
 import '@/assets/styles/index.scss' // global css
@@ -21,6 +21,7 @@ import { getConfigKey } from "@/api/system/config";
 import { parseTime, resetForm, addDateRange, selectDictLabel, download } from "@/utils/ruoyi";
 import Pagination from "@/components/Pagination";
 import VueAMap from 'vue-amap';
+import {findChildrenParams} from '@/utils/route'
 
 Vue.use(VueAMap);
 
@@ -44,6 +45,8 @@ Vue.prototype.msgError = function (msg) {
 Vue.prototype.msgInfo = function (msg) {
   this.$message.info(msg);
 }
+
+Vue.prototype.findChildrenParams = findChildrenParams;
 
 // 全局组件挂载
 Vue.component('Pagination', Pagination)

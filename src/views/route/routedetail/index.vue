@@ -18,11 +18,16 @@
             :data="organizationOptions"
             :props="defaultProps"
             :expand-on-click-node="false"
+            check-on-click-node
+            highlight-current
             :filter-node-method="filterNode"
             ref="tree"
-            default-expand-all
             @node-click="handleNodeClick"
-          />
+          >
+            <span slot-scope="{ node, data }">
+              <span class="el-tree-node__label" :title="node.label">{{ node.label }}</span>
+            </span>
+          </el-tree>
         </div>
       </el-col>
       <el-col :span="16" :xs="20" style="min-height: 500px">
@@ -38,14 +43,14 @@
               ></el-date-picker>
             </el-form-item>
             <el-form-item label="出行方式" prop="planType">
-            <el-select v-model="queryParams.planType" placeholder="请选择">
+              <el-select v-model="queryParams.planType" placeholder="请选择">
                 <el-option
-                v-for="item in planTypeList"
-                :key="item.value"
-                :label="item.label"
-                :value="item.value">
-                </el-option>
-            </el-select>
+                  v-for="item in planTypeList"
+                  :key="item.value"
+                  :label="item.label"
+                  :value="item.value"
+                ></el-option>
+              </el-select>
             </el-form-item>
             <el-form-item label="人员" prop="persons">
               <el-select
@@ -75,13 +80,13 @@
           </el-form>
         </el-col>
         <el-col :span="24" style="margin-bottom: 10px">
-            <el-row type="flex" justify="end">
-            <el-col :span="8">
-                <el-radio v-model="planTypeRadio" label="0">计划路线</el-radio>
-                <el-radio v-model="planTypeRadio" label="1">实际路线</el-radio>
-                <el-radio v-model="planTypeRadio" label="2">路线对比</el-radio>
+          <el-row type="flex" justify="end">
+            <el-col :span="8" :xs="14" :sm="12" :md="10">
+              <el-radio v-model="planTypeRadio" label="0">计划路线</el-radio>
+              <el-radio v-model="planTypeRadio" label="1">实际路线</el-radio>
+              <el-radio v-model="planTypeRadio" label="2">路线对比</el-radio>
             </el-col>
-            </el-row>
+          </el-row>
         </el-col>
         <el-col :span="[24, 0, 12][parseInt(planTypeRadio)]">
           <AMapTemp ref="planamap" @init="initPlanAMap" style="height:700px"></AMapTemp>
@@ -89,14 +94,13 @@
         <el-col :span="[0, 24, 12][parseInt(planTypeRadio)]">
           <AMapTemp ref="detailamap" @init="initDetailAMap" style="height:700px"></AMapTemp>
         </el-col>
-        
       </el-col>
-      <el-col :span="4" :xs="4" style="min-height: 500px; line-height: 40px">
-        <el-col :span="10" :offset="2" v-for="person in personList">
-          <el-col :span="3">
+      <el-col :span="4" :xs="4" style="min-height: 500px; line-height: 40px; font-size:11px">
+        <el-col :span="12" v-for="person in personList">
+          <el-col :span="2">
             <i class="el-icon-user-solid place"></i>
           </el-col>
-          <el-col :offset="1" :span="18">{{ person.name }}</el-col>
+          <el-col :span="16">{{ person.name }}</el-col>
         </el-col>
       </el-col>
     </el-row>
@@ -106,6 +110,7 @@
 <script>
 import { treeselect } from "@/api/route/organization";
 import AMapTemp from "@/views/route/amap/index";
+import { userDist } from "@/api/route/users";
 export default {
   name: "organization",
   components: {
@@ -121,7 +126,7 @@ export default {
 
       defaultProps: {
         children: "children",
-        label: "label"
+        label: "orgNameCn"
       },
 
       // 查询参数
@@ -132,8 +137,11 @@ export default {
         // 日期
         date: new Date(),
 
+        // 组织架构
+        orgCodes: [],
+
         // 出行方式
-        planType: '1'
+        planType: "1"
       },
 
       // 侧边栏人员数据
@@ -161,24 +169,7 @@ export default {
       ],
 
       // 人员下拉框源数据
-      personSource: [
-        {
-            code: '1',
-            name: 'a'
-        },
-        {
-            code: '2',
-            name: 'b'
-        },
-        {
-            code: '3',
-            name: 'd'
-        },
-        {
-            code: '4',
-            name: 'e'
-        }
-      ],
+      personSource: [],
 
       // 地图加载控制
       mapLoading: undefined,
@@ -188,37 +179,48 @@ export default {
 
       // 出行方式数据源
       planTypeList: [
-          {
-              value: '1',
-              label: '直线'
-          },{
-              value: '2',
-              label: '步行'
-          },{
-              value: '3',
-              label: '骑行'
-          },{
-              value: '4',
-              label: '驾车'
-          }
+        {
+          value: "1",
+          label: "直线"
+        },
+        {
+          value: "2",
+          label: "步行"
+        },
+        {
+          value: "3",
+          label: "骑行"
+        },
+        {
+          value: "4",
+          label: "驾车"
+        }
       ],
 
+      // 下拉框检索值
+      selectQuery: "",
+
       // 路线类型选择
-      planTypeRadio: '0'
+      planTypeRadio: "0",
+
+      // 人员下拉框展示人员数量
+      distPageSize: 50
     };
   },
   computed: {
-      // 转换人员数据源为下拉框可用格式 index 0 为下拉框键值， index 1 为对象键值 
-      personData(){
-        let mapping = [
-            ['value', 'code'],
-            ['label', 'name']
-        ]
-        return this.personSource.map(item => Object.assign(item, mapping.reduce((obj, child)=> {
-            obj[child[0]] = item[child[1]]
-            return obj
-        }, {})))
-      }
+    // 转换人员数据源为下拉框可用格式 index 0 为下拉框键值， index 1 为对象键值
+    personData() {
+      let mapping = [["value", "value"], ["label", "label"]];
+      return this.personSource.map(item =>
+        Object.assign(
+          item,
+          mapping.reduce((obj, child) => {
+            obj[child[0]] = item[child[1]];
+            return obj;
+          }, {})
+        )
+      );
+    }
   },
   methods: {
     // 计划路线高德地图初始化完成触发
@@ -227,20 +229,44 @@ export default {
     // 实际路线高德地图初始化完成触发
     initDetailAMap(map, AMap, AMapUI) {},
 
+    // 获取人员下拉框数据
+    getUserDist(callback) {
+      userDist({
+        pageSize: this.distPageSize,
+        name: this.selectQuery,
+        orgCodes: this.queryParams.orgCodes,
+        pageNum: 1
+      }).then(res => {
+        this.personSource = res.rows;
+        if (callback) {
+          callback();
+        }
+      });
+    },
+
     // 获取组织架构树
-    getTreeselect() {
-      // treeselect().then(response => {
-      //   this.organizationOptions = response.data;
-      // });
+    getTreeselect(callback) {
+      treeselect().then(response => {
+        this.organizationOptions = response.data;
+        this.queryParams.orgCodes = this.findChildrenParams(
+          this.organizationOptions,
+          false,
+          "orgCode"
+        );
+        callback();
+      });
     },
     // 筛选节点
     filterNode(value, data) {
       if (!value) return true;
-      return data.label.indexOf(value) !== -1;
+      return data[this.defaultProps.label].indexOf(value) !== -1;
     },
     // 节点单击事件
     handleNodeClick(data) {
-      this.queryParams.orgId = data.id;
+      let orgCodes = this.findChildrenParams(data, false, "orgCode");
+      this.queryParams.orgCodes = orgCodes;
+      this.selectQuery = "";
+      this.getUserDist();
       //this.getList();
     },
     // 搜索点击事件
@@ -253,36 +279,19 @@ export default {
     },
     // 重置点击事件
     resetQuery() {
-      this.resetForm("queryForm")
+      this.resetForm("queryForm");
       this.handleQuery();
     },
     remoteMethod(query) {
-        if (query !== '') {
-            this.loading = true;
-            setTimeout(() => {
-            this.loading = false;
-            this.options = this.list.filter(item => {
-                return item.label.toLowerCase()
-                .indexOf(query.toLowerCase()) > -1;
-            });
-            }, 200);
-        } else {
-            this.options = [];
-        }
+      this.selectQuery = query;
+      this.personSelectloading = true;
+      this.getUserDist(() => (this.personSelectloading = false));
     }
   },
   created() {
-    this.getTreeselect();
+    this.getTreeselect(this.getUserDist);
   },
-  filters: {
-    percentage(val1, val2) {
-      if (val2 && val2 != "0") {
-        return ((parseInt(val1) / parseInt(val2)) * 100).toFixed(2) + "%";
-      } else {
-        return "0%";
-      }
-    }
-  },
+  filters: {},
   watch: {
     // 根据名称筛选部门树
     organizationName(val) {
