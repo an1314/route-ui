@@ -24,6 +24,7 @@
 <script>
 import VueAMap from "vue-amap";
 import PersonInfoWindow from "./components/infowindow/personinfowindow.vue";
+import StoreInfoWindow from './components/infowindow/storeinfowindow.vue'
 
 // 引入高德地图
 VueAMap.initAMapApiLoader({
@@ -35,7 +36,16 @@ VueAMap.initAMapApiLoader({
 
 export default {
   components: {
-    PersonInfoWindow
+    PersonInfoWindow,
+    StoreInfoWindow
+  },
+  props: {
+    infowindowType: {
+      type: String,
+      default(){
+        return 'default'
+      }
+    }
   },
   data() {
     return {
@@ -66,165 +76,6 @@ export default {
             AMapUI.loadUI(["overlay/SvgMarker"], SvgMarker => {
               if (SvgMarker) {
                 this.markerObject.SvgMarker = SvgMarker;
-                this.createSvgMarker(
-                  {
-                    store: {
-                      lnglat: [121.59996, 31.197646]
-                    },
-                    color: "red"
-                  },
-                  "0"
-                );
-                let users = [
-                  {
-                    storecode: "H09100800343",
-                    usercode: "S180713007",
-                    visitdate: null,
-                    storename: "济南华联超市经七路店",
-                    storetype: "Super Low",
-                    storeaddress: "济南市经七路槐荫广场地下",
-                    rmnamecn: null,
-                    srmnamecn: null,
-                    latitude: null,
-                    longitude: null,
-                    lnglat: [116.982615, 36.655672]
-                  },
-                  {
-                    storecode: "H09100900234",
-                    usercode: "S180713007",
-                    visitdate: null,
-                    storename: "济南华联将军店",
-                    storetype: "Super Low",
-                    storeaddress: "济南市桑园路7号",
-                    rmnamecn: null,
-                    srmnamecn: null,
-                    latitude: null,
-                    longitude: null,
-                    lnglat: [117.073683, 36.702219]
-                  },
-                  {
-                    storecode: "H09100900248",
-                    usercode: "S180713007",
-                    visitdate: null,
-                    storename: "济南华联华强店",
-                    storetype: "Super Low",
-                    storeaddress: "济南历城区山大路口西北角",
-                    rmnamecn: null,
-                    srmnamecn: null,
-                    latitude: null,
-                    longitude: null,
-                    lnglat: [117.054341, 36.663559]
-                  },
-                  {
-                    storecode: "H09101000653",
-                    usercode: "S180713007",
-                    visitdate: null,
-                    storename: "济南华联超市解放东店",
-                    storetype: "Super High",
-                    storeaddress: "解放东路东段",
-                    rmnamecn: null,
-                    srmnamecn: null,
-                    latitude: null,
-                    longitude: null,
-                    lnglat: [117.078962, 36.665701]
-                  },
-                  {
-                    storecode: "H09101000968",
-                    usercode: "S180713007",
-                    visitdate: null,
-                    storename: "济南华联超市大明店",
-                    storetype: "CVS",
-                    storeaddress: "济南市历下区明湖家具",
-                    rmnamecn: null,
-                    srmnamecn: null,
-                    latitude: null,
-                    longitude: null,
-                    lnglat: [117.055685, 36.695629]
-                  },
-                  {
-                    storecode: "H09101100229",
-                    usercode: "S180713007",
-                    visitdate: null,
-                    storename: "济南华联超市经八路店",
-                    storetype: "Super High",
-                    storeaddress: "济南市中区经八路",
-                    rmnamecn: null,
-                    srmnamecn: null,
-                    latitude: null,
-                    longitude: null,
-                    lnglat: [116.992093, 36.648682]
-                  },
-                  {
-                    storecode: "H09101100237",
-                    usercode: "S180713007",
-                    visitdate: null,
-                    storename: "济南华联超市舜耕店",
-                    storetype: "Super High",
-                    storeaddress: "济南市中区舜耕山庄",
-                    rmnamecn: null,
-                    srmnamecn: null,
-                    latitude: null,
-                    longitude: null,
-                    lnglat: [117.023415, 36.636564]
-                  },
-                  {
-                    storecode: "H09101100400",
-                    usercode: "S180713007",
-                    visitdate: null,
-                    storename: "济南华联超市伟东新都店",
-                    storetype: "Super High",
-                    storeaddress:
-                      "济南市中区八里洼5号伟东新都一区南门向东50米（舜耕路西100米）",
-                    rmnamecn: null,
-                    srmnamecn: null,
-                    latitude: null,
-                    longitude: null,
-                    lnglat: [117.010382, 36.619868]
-                  },
-                  {
-                    storecode: "H09101200139",
-                    usercode: "S180713007",
-                    visitdate: null,
-                    storename: "济南华联超市药山店",
-                    storetype: "Super High",
-                    storeaddress: "济南天桥区药山",
-                    rmnamecn: null,
-                    srmnamecn: null,
-                    latitude: null,
-                    longitude: null,
-                    lnglat: [116.974883, 36.710958]
-                  },
-                  {
-                    storecode: "H09101200140",
-                    usercode: "S180713007",
-                    visitdate: null,
-                    storename: "济南华联馆驿街店",
-                    storetype: "Super High",
-                    storeaddress: "济南市馆驿街",
-                    rmnamecn: null,
-                    srmnamecn: null,
-                    latitude: null,
-                    longitude: null,
-                    lnglat: [117.007603, 36.666605]
-                  },
-                  {
-                    storecode: "H17370102130099",
-                    usercode: "S180713007",
-                    visitdate: null,
-                    storename: "济南华联超市黄金九九店",
-                    storetype: "Super High",
-                    storeaddress: "济南市历下区夜旅游路浆水泉路交叉路口西北角",
-                    rmnamecn: null,
-                    srmnamecn: null,
-                    latitude: null,
-                    longitude: null,
-                    lnglat: [117.083139, 36.640554]
-                  }
-                ];
-                this.createMassMarker({
-                  users,
-                  img: require("@/assets/markers/00baff.png")
-                });
                 this.$emit("init", ...[this.map, AMap, AMapUI]);
               } else {
                 this.$message({
@@ -249,22 +100,70 @@ export default {
             this.$set(this.infowindow, "visible", false);
           }
         }
-      }
+      },
+
+      // 信息窗口显示信息
+      infowindowData: undefined
     };
   },
   methods: {
     infoWindowRender(h, node, instance) {
-      return h(PersonInfoWindow, {
-        props: {
-          data: [
-            {
-              label: "SB",
-              value: "范文龙"
+      switch (this.infowindowType) {
+        case 'personInfoWindow':
+          return h(PersonInfoWindow, {
+            props: {
+              data: this.infowindowData
             }
-          ]
-        }
-      });
+          });
+        case 'storeInfoWindow':
+          return h(StoreInfoWindow, {
+            props: {
+              data: this.infowindowData
+            }
+          });    
+        default:
+          break;
+      }
+      
     },
+
+    // 根据路线类型绘制路线
+    createLine(data, type, color, caseToLnglat, userName){
+      if(!caseToLnglat){
+        caseToLnglat = {
+          lon: 'longitude',
+          lat: 'latitude'
+        }
+      }
+      // 绘制点标记
+      let lnglatList = data.map((child, index) => {
+        Object.assign(child, {
+          lnglat: [child[caseToLnglat.lon], child[caseToLnglat.lat]],
+          userName: userName
+        })
+        this.createSvgMarker({
+          data: child,
+          color: color
+        }, index+1)
+        return child.lnglat;
+      })
+      // 根据type 绘制路线
+      switch (type) {
+        case 'warking':
+          this.drawWalking(lnglatList)
+          break;
+        case 'riding':
+          this.drawRiding(lnglatList)
+          break;
+        case 'driving':
+          this.drawDriving(lnglatList)
+          break;
+        default:
+          this.drawLine(lnglatList)
+          break;
+      }
+    },
+
     // 创建SvgMarker
     createSvgMarker(options, number) {
       let shape = new this.markerObject.SvgMarker.Shape["Circle"]({
@@ -273,16 +172,12 @@ export default {
       });
       let setting = {
         map: this.amap,
-        position: options.store.lnglat,
+        position: options.data.lnglat,
         iconLabel: {
           innerHTML: number,
           style: { top: "3px" }
         },
-        extData: {
-          store: options.store,
-          routeNumber: options.routeNumber,
-          sequence: options.index
-        }
+        extData: options.data
       };
 
       let svgMarker = new this.markerObject.SvgMarker(shape, setting);
@@ -291,6 +186,7 @@ export default {
           event.lnglat.O,
           event.lnglat.P
         ]);
+        this.infowindowData = options.data;
         this.$set(this.infowindow, "visible", true);
       });
       // 缓存 SvgMarker
@@ -300,7 +196,7 @@ export default {
      * 绘制海量点标记
      */
     createMassMarker(options) {
-      let mass = new AMap.MassMarks(options.users, {
+      let mass = new AMap.MassMarks(options.markers, {
         opacity: 0.7,
         zIndex: 120,
         cursor: "pointer",
@@ -315,9 +211,11 @@ export default {
           event.data.lnglat.O,
           event.data.lnglat.P
         ]);
+        this.infowindowData = event.data;
         this.$set(this.infowindow, "visible", true);
       });
       mass.setMap(this.amap);
+      this.amap.setCenter(mass.getData()[0].lnglat)
       // 缓存海量点标记
       this.mapOverlaies.massMarkers.push(mass);
     },
@@ -378,9 +276,9 @@ export default {
     // 清除地图覆盖物
     clear() {
       // 清除海量点标记
-      var massMarker = this.mapOverlaies.massMarker;
-      while (massMarker.length != 0) {
-        var mass = massMarker.pop();
+      var massMarkers = this.mapOverlaies.massMarkers;
+      while (massMarkers.length != 0) {
+        var mass = massMarkers.pop();
         mass.clear();
       }
       this.amap.clearMap();

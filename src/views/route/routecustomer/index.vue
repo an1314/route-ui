@@ -1,8 +1,8 @@
 <template>
-  <div class="app-container">
+  <div class="app-container routecustomer">
     <el-row :gutter="20">
       <!--部门数据-->
-      <el-col :span="4" :xs="24" class="page">
+      <el-col :span="4" :xs="24" >
         <div class="head-container">
           <el-input
             v-model="organizationName"
@@ -20,13 +20,14 @@
             :expand-on-click-node="false"
             check-on-click-node
             highlight-current
+            accordion
             :filter-node-method="filterNode"
             ref="tree"
             @node-click="handleNodeClick"
           >
-             <span slot-scope="{ node, data }">
-                <span class="el-tree-node__label" :title="node.label">{{ node.label }}</span>
-             </span>
+            <span slot-scope="{ node, data }">
+              <span class="el-tree-node__label" :title="node.label">{{ node.label }}</span>
+            </span>
           </el-tree>
         </div>
       </el-col>
@@ -61,15 +62,15 @@
           </el-form>
         </el-col>
         <el-col :span="24">
-          <AMapTemp ref="amap" @init="initAMap" style="height:700px"></AMapTemp>
+          <AMapTemp ref="amap" infowindowType="storeInfoWindow" @init="initAMap" class="page"></AMapTemp>
         </el-col>
       </el-col>
       <el-col :span="4" :xs="4" style="min-height: 500px; line-height: 40px; font-size:11px">
-        <el-col :span="12"  v-for="person in personList">
+        <el-col :span="12" v-for="person in personList">
           <el-col :span="2">
-            <i class="el-icon-user-solid place"></i>
+            <i class="el-icon-user-solid" :style="'color:'+person.color"></i>
           </el-col>
-          <el-col :span="16">{{ person.name }}</el-col>
+          <el-col :span="16" @click.native="personClick(person)"  class="user-place">{{ person.userName }}</el-col>
         </el-col>
       </el-col>
     </el-row>
@@ -79,7 +80,8 @@
 <script>
 import { treeselect } from "@/api/route/organization";
 import AMapTemp from "@/views/route/amap/index";
-import { userDist } from "@/api/route/users"
+import { userDist } from "@/api/route/users";
+import { routeCustomerData } from "@/api/route/routecustomer";
 export default {
   name: "routecustomer",
   components: {
@@ -105,6 +107,9 @@ export default {
 
         // 组织架构
         orgCodes: [],
+
+        // 组织架构所选层级
+        orgLevel: '0'
       },
 
       // 侧边栏人员数据
@@ -121,18 +126,10 @@ export default {
 
       // 侧边栏人员数据
       personList: [
-        {
-          color: "red",
-          name: "张三"
-        },
-        {
-          color: "red",
-          name: "张三"
-        }
       ],
 
       // 下拉框检索值
-      selectQuery: '',
+      selectQuery: "",
 
       // 人员下拉框源数据
       personSource: [],
@@ -148,24 +145,72 @@ export default {
     };
   },
   computed: {
-      // 转换人员数据源为下拉框可用格式 index 0 为下拉框键值， index 1 为对象键值 
-      personData(){
-        let mapping = [
-            ['value', 'value'],
-            ['label', 'label']
-        ]
-        return this.personSource.map(item => Object.assign(item, mapping.reduce((obj, child)=> {
-            obj[child[0]] = item[child[1]]
-            return obj
-        }, {})))
-      }
+    // 转换人员数据源为下拉框可用格式 index 0 为下拉框键值， index 1 为对象键值
+    personData() {
+      let mapping = [["value", "value"], ["label", "label"]];
+      return this.personSource.map(item =>
+        Object.assign(
+          item,
+          mapping.reduce((obj, child) => {
+            obj[child[0]] = item[child[1]];
+            return obj;
+          }, {})
+        )
+      );
+    }
   },
   methods: {
     // 高德地图初始化完成触发
     initAMap(map, AMap, AMapUI) {},
 
+    // 获取用户覆盖
+    getList() {
+
+      
+      if(!this.queryParams.persons.length && new Set(['0', '1', '2', '3']).has(this.queryParams.orgLevel)){
+        this.$message({
+          message: '请选择单元层级和DSS层级',
+          type: 'warning'
+        });
+        this.mapLoading.close();
+        return;
+      }
+
+      routeCustomerData({
+        orgCodes: this.queryParams.orgCodes,
+        userCodes: this.queryParams.persons.map(item => item.value)
+      }).then(res => {
+        
+        // 清空地图
+        this.$refs.amap.clear();
+
+        // 绘制地图
+        if (res.data && res.data.length) {
+          res.data.forEach((item, index) => {
+            // 获取颜色数据
+            let colorObj = this.markerList[index%this.markerList.length];
+            let markers = item.stores.map(child =>
+              Object.assign(child, { lnglat: [child.longitude, child.latitude], userName:item.userName })
+            );
+            this.$refs.amap.createMassMarker({
+              markers: markers,
+              img: colorObj.img
+            });
+            Object.assign(item, {color: colorObj.color})
+          });
+        }else{
+          this.$message({
+            message: '无匹配门店数据',
+            type: 'success'
+          });
+        }
+        this.personList = res.data|| [];
+        this.mapLoading.close();
+      });
+    },
+
     // 获取人员下拉框数据
-    getUserDist(callback){
+    getUserDist(callback) {
       userDist({
         pageSize: this.distPageSize,
         name: this.selectQuery,
@@ -173,18 +218,36 @@ export default {
         pageNum: 1
       }).then(res => {
         this.personSource = res.rows;
-        if(callback){
-          callback()
+        if (callback) {
+          callback();
         }
-      })
+      });
+    },
+
+     // 侧边栏人员点击事件
+    personClick(person){
+      let map =  this.$refs.amap;
+      if(person.stores && person.stores.length){
+        // 重定位地图
+        map.amap.setCenter(person.stores[0].lnglat);
+      }else{
+        this.$message({
+          message: '无匹配门店数据',
+          type: 'success'
+        });
+      }      
     },
 
     // 获取组织架构树
     getTreeselect(callback) {
       treeselect().then(response => {
-         this.organizationOptions = response.data;
-         this.queryParams.orgCodes = this.findChildrenParams(this.organizationOptions, false, 'orgCode')
-          callback();
+        this.organizationOptions = response.data;
+        this.queryParams.orgCodes = this.findChildrenParams(
+          this.organizationOptions,
+          false,
+          "orgCode"
+        );
+        callback();
       });
     },
     // 筛选节点
@@ -194,9 +257,10 @@ export default {
     },
     // 节点单击事件
     handleNodeClick(data) {
-      let orgCodes = this.findChildrenParams(data, false, 'orgCode')
+      let orgCodes = this.findChildrenParams(data, false, "orgCode");
       this.queryParams.orgCodes = orgCodes;
-      this.selectQuery = ''
+      this.queryParams.orgLevel = data.orgLevel
+      this.selectQuery = "";
       this.getUserDist();
       //this.getList();
     },
@@ -206,24 +270,25 @@ export default {
         target: this.$refs.amap.$el,
         lock: true
       });
-      console.log(this.queryParams.persons);
+      this.getList();
     },
     // 重置点击事件
     resetQuery() {
-      this.resetForm("queryForm")
-      this.handleQuery();
+      this.resetForm("queryForm");
+      this.personList = [];
+      this.$refs.amap.clear();
+      //this.handleQuery();
     },
     remoteMethod(query) {
-        this.selectQuery = query
-        this.personSelectloading = true;
-        this.getUserDist(() => this.personSelectloading = false)
+      this.selectQuery = query;
+      this.personSelectloading = true;
+      this.getUserDist(() => (this.personSelectloading = false));
     }
   },
   created() {
     this.getTreeselect(this.getUserDist);
   },
-  filters: {
-  },
+  filters: {},
   watch: {
     // 根据名称筛选部门树
     organizationName(val) {
@@ -233,12 +298,11 @@ export default {
 };
 </script>
 
-<style>
-.page{
-  overflow-y: scroll;
-  height: calc(100vh - 120px);
-}
-.place {
-  color: rgb(38, 67, 197);
-}
+<style lang="scss" scoped>
+
+  .page {
+    overflow-y: auto;
+    height: calc(100vh - 220px);
+  }
+
 </style>

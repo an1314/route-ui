@@ -34,26 +34,36 @@
       <el-col :span="20" :xs="24" style="min-height: 500px">
         <el-col :span="24">
           <el-form :model="queryParams" ref="queryForm" :inline="true" label-width="100px">
-            <el-form-item label="未登录天数" prop="noLoginDay">
-              <el-select v-model="queryParams.noLoginDay" value-key="value" placeholder="请选择">
+            <el-form-item label="门店编号/名称" prop="storeName">
+              <el-input v-model.trim="queryParams.storeName"></el-input>
+            </el-form-item>
+            <el-form-item label="门店类型" prop="storeTypes">
+              <el-select v-model="queryParams.storeTypes" placeholder="请选择" multiple filterable collapse-tags>
                 <el-option
-                  v-for="item in noLoginDayTypeList"
+                  v-for="item in storeTypeList"
                   :key="item.value"
                   :label="item.label"
-                  :value="item"
+                  :value="item.value"
                 ></el-option>
               </el-select>
             </el-form-item>
-
+            <el-form-item label="门店状态" prop="storeStatus">
+              <el-select v-model="queryParams.storeStatus" placeholder="请选择">
+                <el-option
+                  v-for="item in storeStatusList"
+                  :key="item.value"
+                  :label="item.label"
+                  :value="item.value"
+                ></el-option>
+              </el-select>
+            </el-form-item>
             <el-form-item>
               <el-button type="primary" icon="el-icon-search" size="mini" @click="handleQuery">搜索</el-button>
               <el-button icon="el-icon-refresh" size="mini" @click="resetQuery">重置</el-button>
             </el-form-item>
           </el-form>
-        </el-col>
-        <el-row :gutter="10" class="mb8" type="flex" justify="end">
-          <el-col :span="16">
-            <el-col :span="4.5">
+          <el-row :gutter="10" class="mb8">
+            <el-col :span="1.5">
               <!--v-hasPermi="['system:config:export']"  -->
               <el-button
                 type="warning"
@@ -63,23 +73,29 @@
                 :loading="exportLoading"
               >导出</el-button>
             </el-col>
-          </el-col>
+          </el-row>
+        </el-col>
 
-          <el-col :span="3">{{ showOrgName }} - {{ queryParams.noLoginDay.label }}</el-col>
-          <el-col :span="4" :offset="1">未登录系统总人数 {{ total }}</el-col>
-        </el-row>
-        <el-table v-loading="loading" :data="userList" >
+        <el-table v-loading="loading" :data="storeList">
           <el-table-column label="大区群" align="center" prop="largeRegionGroup" />
           <el-table-column label="大区" align="center" prop="largeRegion" />
-          <el-table-column label="小区" align="center" prop="smallRegion" show-overflow-tooltip />
+          <el-table-column label="小区" align="center" prop="smallRegion" show-overflow-tooltip  />
           <el-table-column label="单元" align="center" prop="unit" show-overflow-tooltip />
           <el-table-column label="DOM" align="center" prop="dom" show-overflow-tooltip />
-          <el-table-column label="DSS" align="center" prop="dss" show-overflow-tooltip />
-          <el-table-column label="业代账号" align="center" prop="userCode" />
-          <el-table-column label="业代姓名" align="center" prop="userName" />
-          <el-table-column label="业代手机" align="center" prop="tel" />
-          <el-table-column label="主管姓名" align="center" prop="managerCode" />
-          <el-table-column label="主管手机" align="center" prop="managerUserName" />
+          <el-table-column label="DSS" align="center" prop="dss" show-overflow-tooltip  />
+          <el-table-column label="SFACODE" align="center" prop="sfaCode" />
+          <el-table-column label="门店编号" align="center" prop="storeCode" show-overflow-tooltip />
+          <el-table-column label="门店名称" align="center" prop="storeName" show-overflow-tooltip  />
+          <el-table-column label="门店地址" align="center" prop="storeAddress" show-overflow-tooltip />
+          <el-table-column label="门店类型" align="center" prop="storeType" />
+          <el-table-column label="门店状态" align="center" prop="storeStatus">
+            <template slot-scope="scope">
+              <el-tag
+                :type="scope.row.storeStatus ? 'success' : 'error'"
+                disable-transitions
+              >{{scope.row.storeStatus ? '有效': '无效'}}</el-tag>
+            </template>
+          </el-table-column>
         </el-table>
 
         <pagination
@@ -97,7 +113,7 @@
 <script>
 import { treeselect } from "@/api/route/organization";
 import AMapTemp from "@/views/route/amap/index";
-import { noLoginUser, noLoginUserExport } from "@/api/route/users";
+import { storeList, storeListExport } from "@/api/route/store";
 export default {
   name: "nologinpersons",
   components: {
@@ -118,11 +134,14 @@ export default {
 
       // 查询参数
       queryParams: {
-        // 未登录天数
-        noLoginDay: {
-          value: "2",
-          label: "7天"
-        },
+        // 门店类型
+        storeTypes: [],
+
+        // 门店状态
+        storeStatus: "",
+
+        // 门店名称
+        storeName: "",
 
         // 组织架构
         orgCodes: [],
@@ -132,23 +151,119 @@ export default {
         pageSize: 10
       },
 
-      // 未登录天数数据源
-      noLoginDayTypeList: [
+      // 门店类型集合
+      storeTypeList: [
         {
-          value: "1",
-          label: "3天"
+          value: "Grocery",
+          label: "Grocery"
         },
         {
-          value: "2",
-          label: "7天"
+          value: "Mini",
+          label: "Mini"
         },
         {
-          value: "3",
-          label: "一个月"
+          value: "Kiosk",
+          label: "Kiosk"
         },
         {
-          value: "4",
-          label: "三个月以上"
+          value: "Mini High",
+          label: "Mini High"
+        },
+        {
+          value: "CVS",
+          label: "CVS"
+        },
+        {
+          value: "Super Low",
+          label: "Super Low"
+        },
+        {
+          value: "Super High",
+          label: "Super High"
+        },
+        {
+          value: "Hyper",
+          label: "Hyper"
+        },
+        {
+          value: "WS",
+          label: "WS"
+        },
+        {
+          value: "Super",
+          label: "Super"
+        },
+        {
+          value: "SmallMini",
+          label: "SmallMini"
+        },
+        {
+          value: "其他",
+          label: "其他"
+        },
+        {
+          value: "HM",
+          label: "HM"
+        },
+        {
+          value: "Large SM",
+          label: "Large SM"
+        },
+        {
+          value: "C&C",
+          label: "C&C"
+        },
+        {
+          value: "Small SM",
+          label: "Small SM"
+        },
+        {
+          value: "LargeMini",
+          label: "LargeMini"
+        },
+        {
+          value: "Prestige SM",
+          label: "Prestige SM"
+        },
+        {
+          value: "Premium SM",
+          label: "Premium SM"
+        },
+        {
+          value: "Club",
+          label: "Club"
+        },
+        {
+          value: "PCS",
+          label: "PCS"
+        },
+        {
+          value: "DS",
+          label: "DS"
+        },
+        {
+          value: "Others (WS,virtual…)",
+          label: "Others (WS,virtual…)"
+        },
+        {
+          value: "eCOM",
+          label: "eCOM"
+        }
+      ],
+
+      // 门店状态集合
+      storeStatusList: [
+        {
+          value: "",
+          label: "全部"
+        },
+        {
+          value: true,
+          label: "有效"
+        },
+        {
+          value: false,
+          label: "无效"
         }
       ],
 
@@ -159,7 +274,7 @@ export default {
       total: 0,
 
       // 表格数据源
-      userList: [],
+      storeList: [],
 
       // 表格加载控制
       loading: false,
@@ -194,63 +309,11 @@ export default {
       this.showOrgName = data.orgNameCn;
       //this.getList();
     },
-    // 获取开始结束时间
-    getBeginEnd() {
-      switch (this.queryParams.noLoginDay.value) {
-        // 三天到七天
-        case "1":
-          return {
-            beginTime: this.$moment()
-              .subtract(7, "days")
-              .format("YYYY-MM-DD hh:mm:ss"),
-            endTime: this.$moment()
-              .subtract(3, "days")
-              .format("YYYY-MM-DD hh:mm:ss")
-          };
-        // 七天到一个月
-        case "2":
-          return {
-            beginTime: this.$moment()
-              .subtract(1, "months")
-              .format("YYYY-MM-DD hh:mm:ss"),
-            endTime: this.$moment()
-              .subtract(7, "days")
-              .format("YYYY-MM-DD hh:mm:ss")
-          };
-        // 一个月到三个月
-        case "3":
-          return {
-            beginTime: this.$moment()
-              .subtract(3, "months")
-              .format("YYYY-MM-DD hh:mm:ss"),
-            endTime: this.$moment()
-              .subtract(1, "months")
-              .format("YYYY-MM-DD hh:mm:ss")
-          };
-        // 三个月以上
-        default:
-          return {
-            beginTime: "1999-01-01 00:00:00",
-            endTime: this.$moment()
-              .subtract(3, "months")
-              .format("YYYY-MM-DD hh:mm:ss")
-          };
-      }
-    },
     // 查询
     getList() {
       this.loading = true;
-      noLoginUser(
-        Object.assign(
-          {
-            orgCodes: this.queryParams.orgCodes,
-            pageNum: this.queryParams.pageNum,
-            pageSize: this.queryParams.pageSize
-          },
-          this.getBeginEnd()
-        )
-      ).then(res => {
-        this.userList = res.rows;
+      storeList(this.queryParams).then(res => {
+        this.storeList = res.rows;
         this.total = res.total;
         this.loading = false;
       });
@@ -263,7 +326,7 @@ export default {
     // 重置点击事件
     resetQuery() {
       this.resetForm("queryForm");
-      this.userList = [];
+      this.storeList = [];
       this.total = 0;
       //this.handleQuery();
     },
@@ -281,11 +344,8 @@ export default {
       }
     },
     handleExport() {
-      const queryParams = Object.assign(
-        {},
-        this.queryParams,
-        this.getBeginEnd()
-      );
+      const queryParams = this.queryParams;
+
       this.$confirm("是否确认导出所有参数数据项?", "警告", {
         confirmButtonText: "确定",
         cancelButtonText: "取消",
@@ -293,7 +353,7 @@ export default {
       })
         .then(() => {
           this.exportLoading = true;
-          return noLoginUserExport(queryParams);
+          return storeListExport(queryParams);
         })
         .then(response => {
           this.exportLoading = false;
@@ -305,8 +365,7 @@ export default {
   created() {
     this.getTreeselect();
   },
-  filters: {
-  },
+  filters: {},
   watch: {
     // 根据名称筛选部门树
     organizationName(val) {

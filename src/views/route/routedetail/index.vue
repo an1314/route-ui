@@ -1,5 +1,5 @@
 <template>
-  <div class="app-container">
+  <div class="app-container routedetail">
     <el-row :gutter="20">
       <!--部门数据-->
       <el-col :span="4" :xs="24">
@@ -20,6 +20,7 @@
             :expand-on-click-node="false"
             check-on-click-node
             highlight-current
+            accordion
             :filter-node-method="filterNode"
             ref="tree"
             @node-click="handleNodeClick"
@@ -89,18 +90,18 @@
           </el-row>
         </el-col>
         <el-col :span="[24, 0, 12][parseInt(planTypeRadio)]">
-          <AMapTemp ref="planamap" @init="initPlanAMap" style="height:700px"></AMapTemp>
+          <AMapTemp ref="detailamap" infowindowType="storeInfoWindow" @init="initPlanAMap" class="page"></AMapTemp>
         </el-col>
         <el-col :span="[0, 24, 12][parseInt(planTypeRadio)]">
-          <AMapTemp ref="detailamap" @init="initDetailAMap" style="height:700px"></AMapTemp>
+          <AMapTemp ref="actamap" infowindowType="storeInfoWindow" @init="initDetailAMap" class="page"></AMapTemp>
         </el-col>
       </el-col>
       <el-col :span="4" :xs="4" style="min-height: 500px; line-height: 40px; font-size:11px">
         <el-col :span="12" v-for="person in personList">
           <el-col :span="2">
-            <i class="el-icon-user-solid place"></i>
+            <i class="el-icon-user-solid" :style="'color:'+person.color.color"></i>
           </el-col>
-          <el-col :span="16">{{ person.name }}</el-col>
+          <el-col :span="16" @click.native="personClick(person)" class="user-place">{{ person.label }}</el-col>
         </el-col>
       </el-col>
     </el-row>
@@ -111,6 +112,8 @@
 import { treeselect } from "@/api/route/organization";
 import AMapTemp from "@/views/route/amap/index";
 import { userDist } from "@/api/route/users";
+import { routeActList } from '@/api/route/routeact';
+import { routeDetailList } from '@/api/route/routedetail'
 export default {
   name: "organization",
   components: {
@@ -141,38 +144,20 @@ export default {
         orgCodes: [],
 
         // 出行方式
-        planType: "1"
+        planType: "line"
       },
 
       // 侧边栏人员数据
-      userInfo: {
-        // sfa 总人数
-        sfaUserNum: 0,
-
-        // 登录人数
-        loginUserNum: 0,
-
-        // 拜访人数
-        visitUserNum: 0
-      },
-
-      // 侧边栏人员数据
-      personList: [
-        {
-          color: "red",
-          name: "张三"
-        },
-        {
-          color: "red",
-          name: "张三"
-        }
-      ],
+      personList: [],
 
       // 人员下拉框源数据
       personSource: [],
 
-      // 地图加载控制
-      mapLoading: undefined,
+      // 实际路线地图加载控制
+      actMapLoading: undefined,
+
+      // 计划路线地图加载控制
+      detailMapLoading: undefined,
 
       // 人员下拉框加载控制
       personSelectloading: false,
@@ -180,19 +165,19 @@ export default {
       // 出行方式数据源
       planTypeList: [
         {
-          value: "1",
+          value: "line",
           label: "直线"
         },
         {
-          value: "2",
+          value: "warking",
           label: "步行"
         },
         {
-          value: "3",
+          value: "riding",
           label: "骑行"
         },
         {
-          value: "4",
+          value: "driving",
           label: "驾车"
         }
       ],
@@ -204,7 +189,8 @@ export default {
       planTypeRadio: "0",
 
       // 人员下拉框展示人员数量
-      distPageSize: 50
+      distPageSize: 50,
+
     };
   },
   computed: {
@@ -223,11 +209,13 @@ export default {
     }
   },
   methods: {
-    // 计划路线高德地图初始化完成触发
-    initPlanAMap(map, AMap, AMapUI) {},
-
     // 实际路线高德地图初始化完成触发
-    initDetailAMap(map, AMap, AMapUI) {},
+    initPlanAMap(map, AMap, AMapUI) {
+    },
+
+    // 计划路线高德地图初始化完成触发
+    initDetailAMap(map, AMap, AMapUI) {
+    },
 
     // 获取人员下拉框数据
     getUserDist(callback) {
@@ -242,6 +230,115 @@ export default {
           callback();
         }
       });
+    },
+    getList(){
+      let date = this.$moment(this.queryParams.date).format("YYYY-MM-DD");
+
+
+      // 获取人员颜色及图标
+      const len = this.markerList.length;
+      let personList = [];
+      if(this.queryParams.persons.length == 0){
+        // 未选择人员，将获取的下拉框数据作为人员数据
+        this.personList = this.personData.map((item, index) => {
+        return Object.assign({
+            color: this.markerList[index%len]
+          }, item);
+        });
+        this.$message({
+            message: '所选组织架构人员过多，将获取前五十人查询数据',
+            type: 'warning'
+        });
+      }else{
+        this.personList = this.queryParams.persons.map((item, index) => {
+        return Object.assign({
+            color: this.markerList[index%len]
+          }, item);
+        });
+      }
+      
+      // 获取人员计划路线
+      routeDetailList({
+        orgCodes: this.queryParams.orgCodes,
+        beginTime: date + " 00:00:00",
+        endTime: date + " 23:59:59",
+        userCodes: this.personList.map(item => item.value)
+      }).then(res => {
+        // 清空地图
+        this.$refs.detailamap.clear();
+        // 绘制地图
+        if (res.data && res.data.length) {
+          res.data.forEach((item, index) => {
+            let personColor = this.personList.find(child => child.value == item.userCode);
+            this.$refs.detailamap.createLine(item.stores, this.queryParams.planType, personColor.color.color, undefined, item.userName);       
+            personColor.detail = item.stores;
+            Object.assign(item, personColor.color.color)
+          });
+          this.$refs.detailamap.amap.setFitView();
+        }else{
+          this.$message({
+            message: '无匹配门店计划',
+            type: 'success'
+          });
+        }
+        this.datailMapLoading.close();
+      });
+
+      // 获取人员门店分布
+      routeActList({
+        orgCodes: this.queryParams.orgCodes,
+        beginTime: date + " 00:00:00",
+        endTime: date + " 23:59:59",
+        userCodes: this.personList.map(item => item.value)
+      }).then(res => {
+        // 清空地图
+        this.$refs.actamap.clear();
+        // 绘制地图
+        if (res.data && res.data.length) {
+          
+          res.data.forEach((item, index) => {
+            let personColor = this.personList.find(child => child.value == item.userCode);
+            this.$refs.actamap.createLine(item.stores, this.queryParams.planType, personColor.color.color, undefined, item.userName);
+            personColor.act = item.stores;
+            Object.assign(item, {color: personColor.color.color})
+          });
+          this.$refs.actamap.amap.setFitView();
+        }else{
+          this.$message({
+            message: '无匹配门店拜访',
+            type: 'success'
+          });
+        }
+        this.actMapLoading.close();
+      });
+  
+    },
+
+    // 侧边栏人员点击事件
+    personClick(person){
+      let actmap =  this.$refs.actamap;
+      if(person.act && person.act.length){
+        // 重定位地图
+        actmap.amap.setCenter(person.act[0].lnglat);
+      }else{
+        this.$message({
+          message: '无匹配门店拜访',
+          type: 'success'
+        });
+      }
+      
+
+
+      let detailmap =  this.$refs.detailamap;
+      if(person.detail && person.detail.length){
+        // 重定位地图
+        detailmap.amap.setCenter(person.detail[0].lnglat);
+      }else{
+        this.$message({
+          message: '无匹配门店计划',
+          type: 'success'
+        });
+      } 
     },
 
     // 获取组织架构树
@@ -271,16 +368,22 @@ export default {
     },
     // 搜索点击事件
     handleQuery() {
-      this.mapLoading = this.$loading({
-        target: this.$refs.amap.$el,
+      this.datailMapLoading = this.$loading({
+        target: this.$refs.detailamap.$el,
         lock: true
       });
-      console.log(this.queryParams.persons);
+      this.actMapLoading = this.$loading({
+        target: this.$refs.actamap.$el,
+        lock: true
+      });
+      this.getList();
     },
     // 重置点击事件
     resetQuery() {
       this.resetForm("queryForm");
-      this.handleQuery();
+      this.personList = [];
+      this.$refs.actamap.clear();
+      this.$refs.detailamap.clear();
     },
     remoteMethod(query) {
       this.selectQuery = query;
@@ -302,7 +405,8 @@ export default {
 </script>
 
 <style>
-.place {
-  color: rgb(38, 67, 197);
-}
+  .page {
+    overflow-y: auto;
+    height: calc(100vh - 250px);
+  }
 </style>

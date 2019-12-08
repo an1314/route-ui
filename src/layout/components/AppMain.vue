@@ -30,6 +30,9 @@ export default {
   position: relative;
   overflow: hidden;
 }
+.app-main /deep/ .user-place{
+  cursor: pointer;
+}
 
 .fixed-header+.app-main {
   padding-top: 50px;

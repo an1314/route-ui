@@ -1,5 +1,5 @@
 <template>
-  <div class="app-container">
+  <div class="app-container routeact">
     <el-row :gutter="20">
       <!--部门数据-->
       <el-col :span="4" :xs="24">
@@ -19,6 +19,7 @@
             :props="defaultProps"
             :expand-on-click-node="false"
             check-on-click-node
+            accordion
             highlight-current
             :filter-node-method="filterNode"
             ref="tree"
@@ -49,37 +50,37 @@
           </el-form>
         </el-col>
         <el-col :span="24">
-          <AMapTemp ref="amap" @init="initAMap" style="height:700px"></AMapTemp>
+          <AMapTemp ref="amap" infowindowType="personInfoWindow" @init="initAMap" class="page"></AMapTemp>
         </el-col>
       </el-col>
       <el-col :span="4" :xs="4" style="min-height: 500px; line-height: 40px; font-size:11px">
         <el-row>
           <el-col :span="14">SFA总人数：</el-col>
           <el-col :span="10">
-            <el-input v-model="userInfo.sfaUserNum" type="number" size="small"></el-input>
+            <el-input v-model="userInfo.sfaNum" type="number" size="small"></el-input>
           </el-col>
         </el-row>
         <el-row>
           <el-col :span="14">今日登录人数：</el-col>
-          <el-col :span="10">{{ userInfo.loginUserNum }}</el-col>
+          <el-col :span="10">{{ userInfo.loginNum }}</el-col>
         </el-row>
         <el-row>
           <el-col :span="14">登录占比：</el-col>
-          <el-col :span="10">{{ userInfo.loginUserNum , userInfo.sfaUserNum | percentage }}</el-col>
+          <el-col :span="10">{{ userInfo.loginNum , userInfo.sfaNum | percentage }}</el-col>
         </el-row>
         <el-row>
           <el-col :span="14">今日拜访人数：</el-col>
-          <el-col :span="10">{{ userInfo.visitUserNum }}</el-col>
+          <el-col :span="10">{{ userInfo.visitNum }}</el-col>
         </el-row>
         <el-row>
           <el-col :span="14">拜访占比：</el-col>
-          <el-col :span="10">{{ userInfo.visitUserNum , userInfo.sfaUserNum | percentage }}</el-col>
+          <el-col :span="10">{{ userInfo.visitNum , userInfo.sfaNum | percentage }}</el-col>
         </el-row>
-        <el-col :span="12"  v-for="person in personList">
+        <el-col :span="12" v-for="person in personList">
           <el-col :span="2">
             <i class="el-icon-user-solid place"></i>
           </el-col>
-          <el-col :span="16">{{ person.name }}</el-col>
+          <el-col :span="16" @click.native="personClick(person)"  class="user-place">{{ person.userName }}</el-col>
         </el-col>
       </el-col>
     </el-row>
@@ -89,7 +90,8 @@
 <script>
 import { treeselect } from "@/api/route/organization";
 import AMapTemp from "@/views/route/amap/index";
-import { userDist } from "@/api/route/users"
+import { userDist, userInfoSum } from "@/api/route/users";
+import { routeActForUser } from "@/api/route/routeact";
 export default {
   name: "routeact",
   components: {
@@ -114,38 +116,26 @@ export default {
         date: new Date(),
 
         // 组织架构
-        orgCodes: [],
+        orgCodes: []
       },
 
       // 侧边栏人员数据
       userInfo: {
         // sfa 总人数
-        sfaUserNum: 0,
+        sfaNum: 0,
 
         // 登录人数
-        loginUserNum: 0,
+        loginNum: 0,
 
         // 拜访人数
-        visitUserNum: 0
+        visitNum: 0
       },
 
       // 侧边栏人员数据
-      personList: [
-        {
-          color: "red",
-          name: "张三"
-        },
-        {
-          color: "red",
-          name: "张三"
-        }
-      ],
+      personList: [],
 
       // 地图加载控制
-      mapLoading: undefined,
-
-      // 人员下拉框展示人员数量
-      distPageSize: 50
+      mapLoading: undefined
     };
   },
 
@@ -153,24 +143,64 @@ export default {
     // 高德地图初始化完成触发
     initAMap(map, AMap, AMapUI) {},
 
-    // 获取人员下拉框数据
-    getUserDist(query){
-      userDist({
-        pageSize: this.distPageSize,
-        name: query,
+    getList() {
+      let date = this.$moment(this.queryParams.date).format("YYYY-MM-DD");
+
+      // 获取侧边栏用户信息
+      userInfoSum({
         orgCodes: this.queryParams.orgCodes,
+        beginTime: date + " 00:00:00",
+        endTime: date + " 23:59:59"
+      }).then(res => {
+        this.userInfo = res.data;
+      });
+      // 获取人员点分布
+      routeActForUser({
+        orgCodes: this.queryParams.orgCodes,
+        beginTime: date + " 00:00:00",
+        endTime: date + " 23:59:59",
+        pageSize: 0,
         pageNum: 1
       }).then(res => {
-        this.personList = res.data;
-      })
+        // 清空地图
+        this.$refs.amap.clear();
+        this.personList = [];
+        // 绘制地图
+        if (res.rows && res.rows.length) {
+          let persons = res.rows.map(item =>
+            Object.assign(item, { lnglat: [item.lon, item.lat] })
+          );
+          this.$refs.amap.createMassMarker({
+            markers: persons,
+            img: require("@/assets/markers/00baff.png")
+          });
+          this.personList = persons;
+        }
+        this.mapLoading.close();
+      });
     },
 
+    // 侧边栏人员点击事件
+    personClick(person) {
+      let map = this.$refs.amap;
+      // 重定位地图
+      map.amap.setCenter(person.lnglat);
+      // 更改信息窗口数据
+      map.infowindowData = person;
+      // 打开信息窗口
+      this.$set(map.infowindow, "visible", true);
+      // 重定位信息窗口
+      this.$set(map.infowindow, "position", [person.lon, person.lat]);
+    },
     // 获取组织架构树
-    getTreeselect(callback) {
+    getTreeselect() {
       treeselect().then(response => {
         this.organizationOptions = response.data;
-        this.queryParams.orgCodes = this.findChildrenParams(this.organizationOptions, false, 'orgCode')
-        callback();
+        this.queryParams.orgCodes = this.findChildrenParams(
+          this.organizationOptions,
+          false,
+          "orgCode"
+        );
       });
     },
     // 筛选节点
@@ -180,7 +210,7 @@ export default {
     },
     // 节点单击事件
     handleNodeClick(data) {
-      let orgCodes = this.findChildrenParams(data, false, 'orgCode')
+      let orgCodes = this.findChildrenParams(data, false, "orgCode");
       this.queryParams.orgCodes = orgCodes;
       //this.getList();
     },
@@ -189,14 +219,21 @@ export default {
         target: this.$refs.amap.$el,
         lock: true
       });
+      this.getList();
     },
     resetQuery() {
       this.resetForm("queryForm");
-      this.handleQuery();
+      this.userInfo = {
+        sfaNum: 0,
+        loginNum: 0,
+        visitNum: 0
+      };
+      this.personList = [];
+      this.$refs.amap.clear();
     }
   },
   created() {
-    this.getTreeselect(this.getUserDist);
+    this.getTreeselect();
   },
   filters: {
     percentage(val1, val2) {
@@ -219,5 +256,10 @@ export default {
 <style>
 .place {
   color: rgb(38, 67, 197);
+}
+
+.page {
+  overflow-y: auto;
+  height: calc(100vh - 220px);
 }
 </style>
