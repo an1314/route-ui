@@ -70,7 +70,7 @@
         </el-row>
         <el-table v-loading="loading" :data="userList" >
           <el-table-column label="大区群" align="center" prop="largeRegionGroup" />
-          <el-table-column label="大区" align="center" prop="largeRegion" />
+          <el-table-column label="大区" align="center" prop="largeRegion" show-overflow-tooltip/>
           <el-table-column label="小区" align="center" prop="smallRegion" show-overflow-tooltip />
           <el-table-column label="单元" align="center" prop="unit" show-overflow-tooltip />
           <el-table-column label="DOM" align="center" prop="dom" show-overflow-tooltip />
