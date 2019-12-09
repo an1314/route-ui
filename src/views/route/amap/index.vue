@@ -6,7 +6,6 @@
       :center="map.center"
       :map-manager="map.amapManager"
       :zoom="map.zoom"
-      
       :events="map.events"
       class="amap-demo"
     >
@@ -24,7 +23,8 @@
 <script>
 import VueAMap from "vue-amap";
 import PersonInfoWindow from "./components/infowindow/personinfowindow.vue";
-import StoreInfoWindow from './components/infowindow/storeinfowindow.vue'
+import StoreInfoWindow from "./components/infowindow/storeinfowindow.vue";
+import StoreInfoWindowForLnglat from "./components/infowindow/storeinfowindowforlnglat.vue";
 
 // 引入高德地图
 VueAMap.initAMapApiLoader({
@@ -37,13 +37,14 @@ VueAMap.initAMapApiLoader({
 export default {
   components: {
     PersonInfoWindow,
-    StoreInfoWindow
+    StoreInfoWindow,
+    StoreInfoWindowForLnglat
   },
   props: {
     infowindowType: {
       type: String,
-      default(){
-        return 'default'
+      default() {
+        return "default";
       }
     }
   },
@@ -93,9 +94,7 @@ export default {
         position: [121.59996, 31.197646],
         visible: false,
         events: {
-          open: () => {
-            
-          },
+          open: () => {},
           close: () => {
             this.$set(this.infowindow, "visible", false);
           }
@@ -107,59 +106,163 @@ export default {
     };
   },
   methods: {
+    // 根据数据集创建 点标记， 无论是否有坐标
+    createMarkers(markers, longitude, latitude, searchParams) {
+      if (!longitude) {
+        longitude = "longitude";
+      }
+      if (!latitude) {
+        latitude = "latitude";
+      }
+      if (!searchParams) {
+        searchParams = "name";
+      }
+      markers.forEach(item => {
+        if (item[longitude] && item[latitude]) {
+          this.createMarker(
+            new AMap.LngLat(item[longitude], item[latitude]),
+            item,
+            longitude,
+            latitude
+          );
+        } else {
+          this.createMarker(undefined, item, longitude, latitude, searchParams);
+        }
+      });
+      this.amap.setFitView();
+    },
+    // 创建标记 根据坐标值有无
+    createMarker(position, item, longitude, latitude, searchParams) {
+      if (position) {
+        var marker = new AMap.Marker({
+          map: this.amap,
+          content: '<i class="el-icon-location" style="color: blue"></i>',
+          position: position,
+          draggable: true,
+          extData: item
+        });
+        marker.on("click", event => {
+          this.$set(this.infowindow, "position", [
+            event.lnglat.O,
+            event.lnglat.P
+          ]);
+          this.infowindowData = item;
+          this.$set(this.infowindow, "visible", true);
+        });
+
+        marker.on("dragend", event => {
+          const obj = {};
+          obj[longitude] = event.lnglat.O;
+          obj[latitude] = event.lnglat.P;
+          Object.assign(item, obj);
+        });
+      } else {
+        new AMap.PlaceSearch().search(item[searchParams], (status, result) => {
+          if (status == "complete") {
+            let position = result.poiList.pois[0].location;
+            Object.assign(item, {
+              longitude: position.O,
+              latitude: position.P
+            })
+            var marker = new AMap.Marker({
+              map: this.amap,
+              content: '<i class="el-icon-location" style="color: orange"></i>',
+              position: position,
+              draggable: true,
+              extData: item
+            });
+            marker.on("click", event => {
+              this.$set(this.infowindow, "position", [
+                event.lnglat.O,
+                event.lnglat.P
+              ]);
+              this.infowindowData = item;
+              this.$set(this.infowindow, "visible", true);
+            });
+
+            marker.on("dragend", event => {
+              const obj = {};
+              obj[longitude] = event.lnglat.O;
+              obj[latitude] = event.lnglat.P;
+              Object.assign(item, obj);
+            });
+            this.amap.setFitView();
+          } else if (status == "error") {
+            this.$message({
+              message: result,
+              type: "error"
+            });
+          } else {
+            this.$message({
+              message: item[searchParams] + "未检索到",
+              type: "warning"
+            });
+          }
+        });
+      }
+    },
+    // 信息窗体
     infoWindowRender(h, node, instance) {
       switch (this.infowindowType) {
-        case 'personInfoWindow':
+        case "personInfoWindow":
           return h(PersonInfoWindow, {
             props: {
               data: this.infowindowData
             }
           });
-        case 'storeInfoWindow':
+        case "storeInfoWindow":
           return h(StoreInfoWindow, {
             props: {
               data: this.infowindowData
             }
-          });    
+          });
+        case "storeinfowindowforlnglat":
+          return h(StoreInfoWindowForLnglat, {
+            props: {
+              data: this.infowindowData
+            }
+          });
         default:
           break;
       }
-      
     },
 
     // 根据路线类型绘制路线
-    createLine(data, type, color, caseToLnglat, userName){
-      if(!caseToLnglat){
+    createLine(data, type, color, caseToLnglat, userName) {
+      if (!caseToLnglat) {
         caseToLnglat = {
-          lon: 'longitude',
-          lat: 'latitude'
-        }
+          lon: "longitude",
+          lat: "latitude"
+        };
       }
       // 绘制点标记
       let lnglatList = data.map((child, index) => {
         Object.assign(child, {
           lnglat: [child[caseToLnglat.lon], child[caseToLnglat.lat]],
           userName: userName
-        })
-        this.createSvgMarker({
-          data: child,
-          color: color
-        }, index+1)
+        });
+        this.createSvgMarker(
+          {
+            data: child,
+            color: color
+          },
+          index + 1
+        );
         return child.lnglat;
-      })
+      });
       // 根据type 绘制路线
       switch (type) {
-        case 'warking':
-          this.drawWalking(lnglatList)
+        case "warking":
+          this.drawWalking(lnglatList);
           break;
-        case 'riding':
-          this.drawRiding(lnglatList)
+        case "riding":
+          this.drawRiding(lnglatList);
           break;
-        case 'driving':
-          this.drawDriving(lnglatList)
+        case "driving":
+          this.drawDriving(lnglatList);
           break;
         default:
-          this.drawLine(lnglatList)
+          this.drawLine(lnglatList);
           break;
       }
     },
@@ -215,7 +318,7 @@ export default {
         this.$set(this.infowindow, "visible", true);
       });
       mass.setMap(this.amap);
-      this.amap.setCenter(mass.getData()[0].lnglat)
+      this.amap.setCenter(mass.getData()[0].lnglat);
       // 缓存海量点标记
       this.mapOverlaies.massMarkers.push(mass);
     },
@@ -291,8 +394,8 @@ export default {
 <style>
 .amap-wrapper {
   width: 100%;
-  height: 500px;
-  min-width: 500px;
-  min-height: 500px;
+  height: 200px;
+  min-width: 100px;
+  min-height: 100px;
 }
 </style>

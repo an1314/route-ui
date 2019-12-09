@@ -34,9 +34,7 @@
       <el-col :span="20" :xs="24" style="min-height: 500px">
         <el-col :span="24">
           <el-form :model="queryParams" ref="queryForm" :inline="true" label-width="100px">
-            <el-form-item label="门店编号/名称" prop="storeName">
-              <el-input v-model.trim="queryParams.storeName"></el-input>
-            </el-form-item>
+           
             <el-form-item label="门店类型" prop="storeTypes">
               <el-select
                 v-model="queryParams.storeTypes"
@@ -62,6 +60,19 @@
                   :value="item.value"
                 ></el-option>
               </el-select>
+            </el-form-item>
+            <el-form-item label="坐标值" prop="params.gps">
+              <el-select v-model="queryParams.params.gps" placeholder="请选择" clearable>
+                <el-option
+                  v-for="item in gpsTypeList"
+                  :key="item.value"
+                  :label="item.label"
+                  :value="item.value"
+                ></el-option>
+              </el-select>
+            </el-form-item>
+             <el-form-item label="门店编号/名称" prop="storeName">
+              <el-input v-model.trim="queryParams.storeName"></el-input>
             </el-form-item>
             <el-form-item>
               <el-button type="primary" icon="el-icon-search" size="mini" @click="handleQuery">搜索</el-button>
@@ -103,23 +114,80 @@
                 :loading="exportLoading"
               >导出</el-button>
             </el-col>
+            <el-col :span="1.5">
+              <!--v-hasPermi="['system:config:export']"  -->
+              <el-button
+                icon="el-icon-location-information"
+                size="mini"
+                type="primary"
+                @click="handleLocation"
+              >定位</el-button>
+            </el-col>
           </el-row>
         </el-col>
 
-        <el-table v-loading="loading" :data="storeList" @selection-change="handleSelectionChange">
+        <el-table v-loading="loading" :data="storeList" @selection-change="handleSelectionChange" class="table-box">
           <el-table-column type="selection" width="55" align="center" />
-          <el-table-column label="大区群" align="center" prop="largeRegionGroup" />
-          <el-table-column label="大区" align="center" prop="largeRegion" show-overflow-tooltip/>
-          <el-table-column label="小区" align="center" prop="smallRegion" show-overflow-tooltip />
-          <el-table-column label="单元" align="center" prop="unit" show-overflow-tooltip />
-          <el-table-column label="DOM" align="center" prop="dom" show-overflow-tooltip />
-          <el-table-column label="DSS" align="center" prop="dss" show-overflow-tooltip />
-          <el-table-column label="SFACODE" align="center" prop="sfaCode" />
-          <el-table-column label="门店编号" align="center" prop="storeCode" show-overflow-tooltip />
-          <el-table-column label="门店名称" align="center" prop="storeName" show-overflow-tooltip />
-          <el-table-column label="门店地址" align="center" prop="storeAddress" show-overflow-tooltip />
-          <el-table-column label="门店类型" align="center" prop="storeType" />
-          <el-table-column label="门店状态" align="center" prop="storeStatus">
+          <el-table-column label="大区群" min-width="100" align="center" prop="largeRegionGroup" />
+          <el-table-column
+            label="大区"
+            min-width="100"
+            align="center"
+            prop="largeRegion"
+            show-overflow-tooltip
+          />
+          <el-table-column
+            label="小区"
+            min-width="100"
+            align="center"
+            prop="smallRegion"
+            show-overflow-tooltip
+          />
+          <el-table-column
+            label="单元"
+            min-width="100"
+            align="center"
+            prop="unit"
+            show-overflow-tooltip
+          />
+          <el-table-column
+            label="DOM"
+            min-width="100"
+            align="center"
+            prop="dom"
+            show-overflow-tooltip
+          />
+          <el-table-column
+            label="DSS"
+            min-width="100"
+            align="center"
+            prop="dss"
+            show-overflow-tooltip
+          />
+          <el-table-column label="SFACODE" min-width="100" align="center" prop="sfaCode" />
+          <el-table-column
+            label="门店编号"
+            min-width="100"
+            align="center"
+            prop="storeCode"
+            show-overflow-tooltip
+          />
+          <el-table-column
+            label="门店名称"
+            min-width="100"
+            align="center"
+            prop="storeName"
+            show-overflow-tooltip
+          />
+          <el-table-column
+            label="门店地址"
+            min-width="100"
+            align="center"
+            prop="storeAddress"
+            show-overflow-tooltip
+          />
+          <el-table-column label="门店类型" min-width="100" align="center" prop="storeType" />
+          <el-table-column label="门店状态" min-width="100" align="center" prop="storeStatus">
             <template slot-scope="scope">
               <el-tag
                 :type="scope.row.storeStatus ? 'success' : 'error'"
@@ -160,13 +228,25 @@
           :limit.sync="queryParams.pageSize"
           @pagination="getList"
         />
+
+        <el-dialog title="定位" :visible.sync="locationOpen" width="600px">
+          <AMapTemp ref="amap" infowindowType="storeinfowindowforlnglat" style="height: 500px"></AMapTemp>
+          <div slot="footer" class="dialog-footer">
+            <el-button type="primary" @click="submitLocation">确 定</el-button>
+            <el-button @click="cancelLocation">取 消</el-button>
+          </div>
+        </el-dialog>
         <!-- 添加或修改参数配置对话框 -->
         <el-dialog :title="title" :visible.sync="open" width="600px">
           <el-form ref="form" :model="form" :rules="rules" label-width="80px">
             <el-row>
               <el-col :span="12">
                 <el-form-item label="门店编号" prop="storeCode">
-                  <el-input v-model="form.storeCode" placeholder="请输入门店编号" :disabled="!form.storeCode" />
+                  <el-input
+                    v-model="form.storeCode"
+                    placeholder="请输入门店编号"
+                    :disabled="!form.storeCode"
+                  />
                 </el-form-item>
               </el-col>
               <el-col :span="12">
@@ -199,7 +279,7 @@
               </el-col>
               <el-col :span="12">
                 <el-form-item label="组织架构" prop="orgCode">
-                  <treeselect
+                  <Treeselect
                     v-model="form.orgCode"
                     :options="organizationOptions"
                     :normalizer="normalizer"
@@ -244,7 +324,14 @@
 import { treeselect } from "@/api/route/organization";
 import AMapTemp from "@/views/route/amap/index";
 import Treeselect from "@riophae/vue-treeselect";
-import { storeList, storeListExport, deleteStores, updateStore, inserStore } from "@/api/route/store";
+import "@riophae/vue-treeselect/dist/vue-treeselect.css";
+import {
+  storeList,
+  storeListExport,
+  deleteStores,
+  updateStore,
+  inserStore
+} from "@/api/route/store";
 export default {
   name: "nologinpersons",
   components: {
@@ -261,6 +348,9 @@ export default {
       }
     };
     return {
+      // 是否打开地图
+      locationOpen: true,
+
       // 侧边栏组织架构晒选条件
       organizationName: undefined,
 
@@ -300,10 +390,26 @@ export default {
         // 组织架构
         orgCodes: [],
 
+        // 坐标值
+        params: {
+          gps: ""
+        },
+
         // 分页参数
         pageNum: 1,
         pageSize: 10
       },
+
+      gpsTypeList: [
+        {
+          value: "1",
+          label: "已定位"
+        },
+        {
+          value: "0",
+          label: "未定位"
+        }
+      ],
 
       // 门店类型集合
       storeTypeList: [
@@ -446,6 +552,36 @@ export default {
   },
   computed: {},
   methods: {
+    // 门店定位
+    handleLocation() {
+      this.locationOpen = true;
+      this.$nextTick(() => {
+        this.$refs.amap.clear();
+        // 创建点标记
+        this.$refs.amap.createMarkers(
+          this.stores,
+          "longitude",
+          "latitude",
+          "storeAddress"
+        );
+      });
+    },
+    // 关闭门店定位
+    cancelLocation() {
+      this.locationOpen = false;
+    },
+    // 提交门店定位
+    submitLocation() {
+      updateStore(this.stores).then(response => {
+        if (response.code === 200) {
+          this.msgSuccess("修改成功");
+          this.locationOpen = false;
+          this.getList();
+        } else {
+          this.msgError(response.msg);
+        }
+      });
+    },
     // 表单重置
     reset() {
       this.form = {
@@ -574,7 +710,7 @@ export default {
       this.$refs["form"].validate(valid => {
         if (valid) {
           if (this.form.storeCode != undefined) {
-            updateStore(this.form).then(response => {
+            updateStore([this.form]).then(response => {
               if (response.code === 200) {
                 this.msgSuccess("修改成功");
                 this.open = false;
@@ -599,7 +735,8 @@ export default {
     },
     /** 删除按钮操作 */
     handleDelete(row) {
-      const codes = row.storeCode || this.stores.map(item => item.storeCode).join(",");
+      const codes =
+        row.storeCode || this.stores.map(item => item.storeCode).join(",");
       this.$confirm('是否确认删除参数编号为"' + codes + '"的数据项?', "警告", {
         confirmButtonText: "确定",
         cancelButtonText: "取消",
@@ -624,12 +761,20 @@ export default {
     organizationName(val) {
       this.$refs.tree.filter(val);
     }
+  },
+  mounted() {
+    this.locationOpen = false;
   }
 };
 </script>
 
-<style>
+<style lang="scss" scoped>
+
 .place {
   color: rgb(38, 67, 197);
+}
+.table-box{
+  overflow: auto;
+  max-height: calc(100vh - 350px);
 }
 </style>

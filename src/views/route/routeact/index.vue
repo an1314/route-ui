@@ -57,7 +57,7 @@
         <el-row>
           <el-col :span="14">SFA总人数：</el-col>
           <el-col :span="10">
-            <el-input v-model="userInfo.sfaNum" type="number" size="small"></el-input>
+            <el-input-number v-model="userInfo.sfaNum" size="mini" min="0"  :controls="false" :precision="0" style="width:80px"></el-input-number>
           </el-col>
         </el-row>
         <el-row>
@@ -76,7 +76,7 @@
           <el-col :span="14">拜访占比：</el-col>
           <el-col :span="10">{{ userInfo.visitNum , userInfo.sfaNum | percentage }}</el-col>
         </el-row>
-        <el-col :span="12" v-for="person in personList">
+        <el-col :span="12" :xs="24" :sm="24" :md="24" :lg="24" v-for="person in personList">
           <el-col :span="2">
             <i class="el-icon-user-solid place"></i>
           </el-col>
@@ -172,7 +172,7 @@ export default {
           );
           this.$refs.amap.createMassMarker({
             markers: persons,
-            img: require("@/assets/markers/00baff.png")
+            img: require("@/assets/markers/icon3.png")
           });
           this.personList = persons;
         }

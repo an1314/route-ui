@@ -66,7 +66,7 @@
         </el-col>
       </el-col>
       <el-col :span="4" :xs="4" style="min-height: 500px; line-height: 40px; font-size:11px">
-        <el-col :span="12" v-for="person in personList">
+        <el-col :span="12" :xs="24" :sm="24" :md="24" :lg="24" v-for="person in personList">
           <el-col :span="2">
             <i class="el-icon-user-solid" :style="'color:'+person.color"></i>
           </el-col>

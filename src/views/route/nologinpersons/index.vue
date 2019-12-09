@@ -69,17 +69,17 @@
           <el-col :span="4" :offset="1">未登录系统总人数 {{ total }}</el-col>
         </el-row>
         <el-table v-loading="loading" :data="userList" >
-          <el-table-column label="大区群" align="center" prop="largeRegionGroup" />
-          <el-table-column label="大区" align="center" prop="largeRegion" show-overflow-tooltip/>
-          <el-table-column label="小区" align="center" prop="smallRegion" show-overflow-tooltip />
-          <el-table-column label="单元" align="center" prop="unit" show-overflow-tooltip />
-          <el-table-column label="DOM" align="center" prop="dom" show-overflow-tooltip />
-          <el-table-column label="DSS" align="center" prop="dss" show-overflow-tooltip />
-          <el-table-column label="业代账号" align="center" prop="userCode" />
-          <el-table-column label="业代姓名" align="center" prop="userName" />
-          <el-table-column label="业代手机" align="center" prop="tel" />
-          <el-table-column label="主管姓名" align="center" prop="managerCode" />
-          <el-table-column label="主管手机" align="center" prop="managerUserName" />
+          <el-table-column label="大区群" align="center" min-width="100" prop="largeRegionGroup" />
+          <el-table-column label="大区" align="center" min-width="100" prop="largeRegion" show-overflow-tooltip/>
+          <el-table-column label="小区" align="center" min-width="100" prop="smallRegion" show-overflow-tooltip />
+          <el-table-column label="单元" align="center" min-width="100" prop="unit" show-overflow-tooltip />
+          <el-table-column label="DOM" align="center" min-width="100" prop="dom" show-overflow-tooltip />
+          <el-table-column label="DSS" align="center" min-width="100" prop="dss" show-overflow-tooltip />
+          <el-table-column label="业代账号" align="center" min-width="100" prop="userCode" />
+          <el-table-column label="业代姓名" align="center" min-width="100" prop="userName" />
+          <el-table-column label="业代手机" align="center" min-width="100" prop="tel" />
+          <el-table-column label="主管姓名" align="center" min-width="100" prop="managerCode" />
+          <el-table-column label="主管手机" align="center" min-width="100" prop="managerUserName" />
         </el-table>
 
         <pagination
