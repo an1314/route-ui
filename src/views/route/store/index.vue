@@ -544,6 +544,9 @@ export default {
       // 选中数组
       stores: [],
 
+      // 用于暂存地图定位信息
+      storesRecord: [],
+
       // 非单个禁用
       single: true,
       // 非多个禁用
@@ -557,9 +560,10 @@ export default {
       this.locationOpen = true;
       this.$nextTick(() => {
         this.$refs.amap.clear();
+        this.storesRecord = JSON.parse(JSON.stringify(this.stores))
         // 创建点标记
         this.$refs.amap.createMarkers(
-          this.stores,
+          this.storesRecord,
           "longitude",
           "latitude",
           "storeAddress"
@@ -572,7 +576,7 @@ export default {
     },
     // 提交门店定位
     submitLocation() {
-      updateStore(this.stores).then(response => {
+      updateStore(this.storesRecord).then(response => {
         if (response.code === 200) {
           this.msgSuccess("修改成功");
           this.locationOpen = false;

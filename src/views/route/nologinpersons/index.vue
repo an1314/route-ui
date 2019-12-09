@@ -44,7 +44,9 @@
                 ></el-option>
               </el-select>
             </el-form-item>
-
+            <el-form-item label="工号/姓名" prop="name">
+              <el-input v-model.trim="queryParams.name"></el-input>
+            </el-form-item>
             <el-form-item>
               <el-button type="primary" icon="el-icon-search" size="mini" @click="handleQuery">搜索</el-button>
               <el-button icon="el-icon-refresh" size="mini" @click="resetQuery">重置</el-button>
@@ -123,7 +125,7 @@ export default {
           value: "2",
           label: "7天"
         },
-
+        name: "",
         // 组织架构
         orgCodes: [],
 
@@ -242,11 +244,7 @@ export default {
       this.loading = true;
       noLoginUser(
         Object.assign(
-          {
-            orgCodes: this.queryParams.orgCodes,
-            pageNum: this.queryParams.pageNum,
-            pageSize: this.queryParams.pageSize
-          },
+          this.queryParams,
           this.getBeginEnd()
         )
       ).then(res => {
