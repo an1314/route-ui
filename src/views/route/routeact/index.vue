@@ -57,7 +57,7 @@
         <el-row>
           <el-col :span="14">SFA总人数：</el-col>
           <el-col :span="10">
-            <el-input-number v-model="userInfo.sfaNum" size="mini" min="0"  :controls="false" :precision="0" style="width:80px"></el-input-number>
+            <el-input-number v-model="userInfo.sfaNum" size="mini" :min="0"  :controls="false" :precision="0" style="width:80px"></el-input-number>
           </el-col>
         </el-row>
         <el-row>
