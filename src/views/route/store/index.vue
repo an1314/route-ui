@@ -126,7 +126,7 @@
           </el-row>
         </el-col>
 
-        <el-table v-loading="loading" :data="storeList" @selection-change="handleSelectionChange" class="table-box">
+        <el-table ref="storeTable" v-loading="loading" :data="storeList" @selection-change="handleSelectionChange" class="table-box">
           <el-table-column type="selection" width="55" align="center" />
           <el-table-column label="大区群" min-width="100" align="center" prop="largeRegionGroup" />
           <el-table-column
@@ -573,6 +573,9 @@ export default {
     // 关闭门店定位
     cancelLocation() {
       this.locationOpen = false;
+      // 清楚已选项
+      this.$refs.storeTable.clearSelection();
+      this.stores = [];
     },
     // 提交门店定位
     submitLocation() {

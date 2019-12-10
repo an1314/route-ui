@@ -16,6 +16,18 @@
         :visible="infowindow.visible"
         :events="infowindow.events"
       ></el-amap-info-window>
+      <!-- 未检索到经纬度的点列表 -->
+      <el-card class="box-card" v-show="noLocationMarkers.list.length">
+        <div slot="header" class="clearfix">
+          <span>未检索到的点</span>
+        </div>
+        <div v-for="(markerObject, index) in noLocationMarkers.list" :key="index">
+          <i class="el-icon-location" style="color: red">
+            {{markerObject[noLocationMarkers.searchParams]}}
+            <el-button @click="createNoPositionMarker(markerObject, index)">定位</el-button>
+          </i>
+        </div>
+      </el-card>
     </el-amap>
   </div>
 </template>
@@ -102,7 +114,15 @@ export default {
       },
 
       // 信息窗口显示信息
-      infowindowData: undefined
+      infowindowData: undefined,
+
+      // 存储创建点标记所需相关信息
+      noLocationMarkers: {
+        longitude: "longitude",
+        latitude: "latitude",
+        searchParams: "name",
+        list: []
+      }
     };
   },
   methods: {
@@ -117,6 +137,13 @@ export default {
       if (!searchParams) {
         searchParams = "name";
       }
+      // 存储创建点标记所需相关信息
+      this.noLocationMarkers = {
+        longitude,
+        latitude,
+        searchParams,
+        list: []
+      };
       markers.forEach(item => {
         if (item[longitude] && item[latitude]) {
           this.createMarker(
@@ -130,6 +157,37 @@ export default {
         }
       });
       this.amap.setFitView();
+    },
+    // 创建需要定位的点标记
+    createNoPositionMarker(item, index) {
+      let center = this.amap.getCenter();
+      Object.assign(item, {
+        longitude: center.O,
+        latitude: center.P
+      });
+      var marker = new AMap.Marker({
+        map: this.amap,
+        content: '<i class="el-icon-location" style="color: red"></i>',
+        position: center,
+        draggable: true,
+        extData: item
+      });
+      marker.on("click", event => {
+        this.$set(this.infowindow, "position", [
+          event.lnglat.O,
+          event.lnglat.P
+        ]);
+        this.infowindowData = item;
+        this.$set(this.infowindow, "visible", true);
+      });
+
+      marker.on("dragend", event => {
+        const obj = {};
+        obj[this.noLocationMarkers.longitude] = event.lnglat.O;
+        obj[this.noLocationMarkers.latitude] = event.lnglat.P;
+        Object.assign(item, obj);
+      });
+      this.noLocationMarkers.list.splice(index, 1);
     },
     // 创建标记 根据坐标值有无
     createMarker(position, item, longitude, latitude, searchParams) {
@@ -163,7 +221,7 @@ export default {
             Object.assign(item, {
               longitude: position.O,
               latitude: position.P
-            })
+            });
             var marker = new AMap.Marker({
               map: this.amap,
               content: '<i class="el-icon-location" style="color: orange"></i>',
@@ -193,6 +251,7 @@ export default {
               type: "error"
             });
           } else {
+            this.noLocationMarkers.list.push(item);
             this.$message({
               message: item[searchParams] + "未检索到",
               type: "warning"
@@ -397,5 +456,10 @@ export default {
   height: 200px;
   min-width: 100px;
   min-height: 100px;
+}
+.box-card {
+  position: absolute;
+  top: 0px;
+  right: 0px;
 }
 </style>
