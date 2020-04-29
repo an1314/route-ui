@@ -13,7 +13,7 @@
           </el-row>
           <el-row style="height:35%; background-color:red">
             <el-input v-model="message" type="textarea" :row="4"></el-input>
-            <el-button @click="sendMessage">提交</el-button>
+            <el-button @click="sendMessage">提交1c</el-button>
           </el-row>
         </el-main>
       </el-container>
