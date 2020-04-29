@@ -53,6 +53,11 @@ export const constantRoutes = [
     hidden: true
   },
   {
+    path: '/room',
+    component: () => import('@/views/room/room.vue'),
+    hidden: true
+  },
+  {
     path: '',
     component: Layout,
     redirect: 'index',

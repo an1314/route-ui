@@ -256,6 +256,29 @@ export default {
               message: item[searchParams] + "未检索到",
               type: "warning"
             });
+            var marker = new AMap.Marker({
+              map: this.amap,
+              content: '<i class="el-icon-location" style="color: red"></i>',
+              position: this.amap.getBounds().getSouthWest(),
+              draggable: true,
+              extData: item
+            });
+            marker.on("click", event => {
+              this.$set(this.infowindow, "position", [
+                event.lnglat.O,
+                event.lnglat.P
+              ]);
+              this.infowindowData = item;
+              this.$set(this.infowindow, "visible", true);
+            });
+
+            marker.on("dragend", event => {
+              const obj = {};
+              obj[longitude] = event.lnglat.O;
+              obj[latitude] = event.lnglat.P;
+              Object.assign(item, obj);
+            });
+            this.amap.setFitView();
           }
         });
       }
